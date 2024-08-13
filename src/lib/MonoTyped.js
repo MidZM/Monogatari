@@ -1,5 +1,5 @@
 export default class Typed {
-	constructor(element, config) {
+	constructor (element, config) {
 		config.typeSpeed = config.typeSpeed ?? 100;
 		this.speed = config.typeSpeed; // use default type speed
 		this.nextPause = null;
@@ -11,7 +11,7 @@ export default class Typed {
 
 		this.nodeCounter = 0;
 		this.setDisplay(this.el, config.strings[0]);
-		let spans = this.el.querySelectorAll("span");
+		const spans = this.el.querySelectorAll('span');
 
 		// We only have one string per instance, so these callbacks are equivalent.
 		this.config.onBegin(this);
@@ -20,7 +20,7 @@ export default class Typed {
 		this.typewrite(spans);
 	}
 
-	get strings() {
+	get strings () {
 		return this.config.strings;
 	}
 
@@ -28,10 +28,10 @@ export default class Typed {
 		@param {HTMLElement} element
 		@param {string} curString
 	 */
-	setDisplay(element, curString) {
-		let newElement = document.createElement("div");
+	setDisplay (element, curString) {
+		const newElement = document.createElement('div');
 		newElement.innerHTML = curString;
-		let textNodes = getLeafNodes(newElement);
+		const textNodes = getLeafNodes(newElement);
 		this.actions = [];
 		for (const textNode of textNodes) {
 			const [nodes, actions] = this.parseString(textNode.textContent);
@@ -39,15 +39,13 @@ export default class Typed {
 
 			// overwrite the node with <span> text
 			textNode.replaceWith(...nodes);
-			//edits.push(() => textNode.replaceWith(...nodes));
 		}
-		console.log(this.actions);
 		element.replaceChildren(...newElement.childNodes);
 	}
 
 
 
-	parseString(curString) {
+	parseString (curString) {
 
 		// Separate curString into text and action sections
 		//   eg: "{speed:10}hello {pause:1000}{speed:1000}world!"
@@ -56,8 +54,8 @@ export default class Typed {
 		const actionPattern = /(\{(?:pause|speed):\d+\})/;
 		const sections = curString.split(actionPattern);
 
-		let nodes = [];
-		let actions = [];
+		const nodes = [];
+		const actions = [];
 		let nodeCounter = 0;
 
 		sections.forEach((section, i) => {
@@ -94,19 +92,19 @@ export default class Typed {
 		return [nodes, actions];
 	}
 
-	executeAction(action) {
-		if (action.action == "speed") {
+	executeAction (action) {
+		if (action.action == 'speed') {
 			this.speed = action.n; // overwrites speed value permanently
-		} else if (action.action == "pause") {
+		} else if (action.action == 'pause') {
 			this.config.onTypingPaused(0, this);
-			this.nextPause = action.n // sets a wait time temporarily
+			this.nextPause = action.n; // sets a wait time temporarily
 		}
 
 	}
 
-	typewrite(characters) {
+	typewrite (characters) {
 		if (this.actions[this.nodeCounter]) {
-			this.executeAction(this.actions[this.nodeCounter])
+			this.executeAction(this.actions[this.nodeCounter]);
 		}
 		const waitTime = this.nextPause ?? this.speed;
 		this.timeout = setTimeout(() => {
@@ -114,7 +112,7 @@ export default class Typed {
 				this.nextPause = null;
 				this.config.onTypingResumed(0, this);
 			}
-			characters[this.nodeCounter].style = "";
+			characters[this.nodeCounter].style = '';
 			this.nodeCounter += 1;
 			if (this.nodeCounter < characters.length) {
 				this.typewrite(characters);
@@ -124,17 +122,17 @@ export default class Typed {
 		}, waitTime);
 	}
 
-	destroy() {
+	destroy () {
 		clearTimeout(this.timeout);
 		this.el.replaceChildren();
 		this.config.onDestroy(this);
 	}
 }
 
-function getLeafNodes(node) {
-	let leafNodes = [];
+function getLeafNodes (node) {
+	const leafNodes = [];
 
-	function traverse(currentNode) {
+	function traverse (currentNode) {
 		if (currentNode.childNodes.length === 0) {
 			// It's a leaf node (no child nodes)
 			leafNodes.push(currentNode);
