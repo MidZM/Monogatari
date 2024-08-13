@@ -13,7 +13,10 @@ export default class Typed {
 		this.setDisplay(this.el, config.strings[0]);
 		let spans = this.el.querySelectorAll("span");
 
+		// We only have one string per instance, so these callbacks are equivalent.
+		this.config.onBegin(this);
 		this.config.preStringTyped(0, this);
+
 		this.typewrite(spans);
 	}
 
@@ -95,6 +98,7 @@ export default class Typed {
 		if (action.action == "speed") {
 			this.speed = action.n; // overwrites speed value permanently
 		} else if (action.action == "pause") {
+			this.config.onTypingPaused(0, this);
 			this.nextPause = action.n // sets a wait time temporarily
 		}
 
@@ -105,10 +109,11 @@ export default class Typed {
 			this.executeAction(this.actions[this.nodeCounter])
 		}
 		const waitTime = this.nextPause ?? this.speed;
-		if (this.nextPause) {
-			this.nextPause = null;
-		}
 		this.timeout = setTimeout(() => {
+			if (this.nextPause) {
+				this.nextPause = null;
+				this.config.onTypingResumed(0, this);
+			}
 			characters[this.nodeCounter].style = "";
 			this.nodeCounter += 1;
 			if (this.nodeCounter < characters.length) {
