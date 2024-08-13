@@ -4,6 +4,7 @@ export default class Typed {
 		this.speed = config.typeSpeed; // use default type speed
 		this.nextPause = null;
 		this.config = config;
+		this.timeout = null;
 
 		this.el = typeof element === 'string'
 			? document.querySelector(element)
@@ -11,13 +12,13 @@ export default class Typed {
 
 		this.nodeCounter = 0;
 		this.setDisplay(this.el, config.strings[0]);
-		const spans = this.el.querySelectorAll('span');
+		this.spans = this.el.querySelectorAll('span');
 
 		// We only have one string per instance, so these callbacks are equivalent.
 		this.config.onBegin(this);
 		this.config.preStringTyped(0, this);
 
-		this.typewrite(spans);
+		this.typewrite();
 	}
 
 	get strings () {
@@ -43,7 +44,17 @@ export default class Typed {
 		element.replaceChildren(...newElement.childNodes);
 	}
 
+	stop () {
+		clearTimeout(this.timeout);
+		this.config.onStop(0, this);
+	}
 
+	start () {
+		if(!this.timeout) {
+			this.typewrite();
+			this.config.onStart(0, this);
+		}
+	}
 
 	parseString (curString) {
 
@@ -102,7 +113,7 @@ export default class Typed {
 
 	}
 
-	typewrite (characters) {
+	typewrite () {
 		if (this.actions[this.nodeCounter]) {
 			this.executeAction(this.actions[this.nodeCounter]);
 		}
@@ -112,11 +123,12 @@ export default class Typed {
 				this.nextPause = null;
 				this.config.onTypingResumed(0, this);
 			}
-			characters[this.nodeCounter].style = '';
+			this.spans[this.nodeCounter].style = '';
 			this.nodeCounter += 1;
-			if (this.nodeCounter < characters.length) {
-				this.typewrite(characters);
+			if (this.nodeCounter < this.spans.length) {
+				this.typewrite();
 			} else {
+				this.timeout = null;
 				this.config.onStringTyped(0, this);
 			}
 		}, waitTime);
@@ -124,6 +136,7 @@ export default class Typed {
 
 	destroy () {
 		clearTimeout(this.timeout);
+		this.timeout = null;
 		this.el.replaceChildren();
 		this.config.onDestroy(this);
 	}
