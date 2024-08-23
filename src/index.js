@@ -64,10 +64,11 @@ import portuguese from './translations/Portugues';
 import russian from './translations/Russian';
 import spanish from './translations/Espanol';
 import tokipona from './translations/tokipona';
-
+import bulgarian from './translations/Bulgarian'
 
 Monogatari._translations = {
 	'Bahasa Indonesia': indonesian,
+	'Български': bulgarian,
 	'Беларуская': belarusian,
 	'Deutsch': german,
 	'English': english,
@@ -94,6 +95,10 @@ Monogatari._languageMetadata = {
 	'Беларуская': {
 		code: 'be',
 		icon: '🇧🇾'
+	},
+	'Български': {
+		code: 'bg',
+		icon: '🇧🇬'
 	},
 	'Deutsch': {
 		code: 'de',
