@@ -18,12 +18,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+	  - uses: actions/setup-node@v4
+		with:
+			node-version: 22
       - name: Install Dependencies
-        uses: borales/actions-yarn@v4
+        uses: borales/actions-yarn@v5
         with:
           cmd: install # will run `yarn install` command
       - name: Build Core
-        uses: borales/actions-yarn@v4
+        uses: borales/actions-yarn@v5
         with:
           cmd: build # will run `yarn build` command
       - name: Commit changed files
