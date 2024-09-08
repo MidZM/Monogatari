@@ -70,16 +70,14 @@ export class Dialog extends Action {
 	static setup () {
 		this.engine.globals ({
 			textObject: null,
-			finished_typing: false,
 			typedConfiguration: {
 				strings: [],
 				typeSpeed: this.engine.preference ('TextSpeed'),
-				fadeOut: true,
-				loop: false,
-				showCursor: false,
-				contentType: 'html',
+				loop: false, // TODO: We need to implement this
+				showCursor: false, // TODO: We need to implement this
 				preStringTyped: () => {
 					this.engine.global ('finished_typing', false);
+					this.engine.trigger ('didStartTyping');
 				},
 				onStringTyped: () => {
 					this.engine.global ('finished_typing', true);

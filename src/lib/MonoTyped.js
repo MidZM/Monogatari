@@ -1,9 +1,11 @@
-export default class Typed {
+class Typed {
 	constructor (element, config) {
-		config.typeSpeed = config.typeSpeed ?? 100;
+		this.config = config;
+
+		this.config.typeSpeed = this.config.typeSpeed ?? 100;
+
 		this.speed = config.typeSpeed; // use default type speed
 		this.nextPause = null;
-		this.config = config;
 		this.timeout = null;
 
 		this.el = typeof element === 'string'
@@ -15,7 +17,10 @@ export default class Typed {
 		this.spans = this.el.querySelectorAll('span');
 
 		// We only have one string per instance, so these callbacks are equivalent.
-		this.config.onBegin(this);
+		if (typeof this.config.onBegin === 'function') {
+			this.config.onBegin(this);
+		}
+
 		this.config.preStringTyped(0, this);
 
 		this.typewrite();
@@ -32,7 +37,7 @@ export default class Typed {
 	setDisplay (element, curString) {
 		const newElement = document.createElement('div');
 		newElement.innerHTML = curString;
-		const textNodes = getLeafNodes(newElement);
+		const textNodes = this._getLeafNodes(newElement);
 		this.actions = [];
 		for (const textNode of textNodes) {
 			const [nodes, actions] = this.parseString(textNode.textContent);
@@ -46,13 +51,19 @@ export default class Typed {
 
 	stop () {
 		clearTimeout(this.timeout);
-		this.config.onStop(0, this);
+
+		if (typeof this.config.onStop === 'function') {
+			this.config.onStop(0, this);
+		}
 	}
 
 	start () {
-		if(!this.timeout) {
+		if (!this.timeout) {
 			this.typewrite();
-			this.config.onStart(0, this);
+
+			if (typeof this.config.onStart === 'function') {
+				this.config.onStart(0, this);
+			}
 		}
 	}
 
@@ -87,7 +98,7 @@ export default class Typed {
 					}
 					nodes.push(node);
 				}
-				
+
 			// action section
 			} else {
 				// extract action and parameter
@@ -107,7 +118,10 @@ export default class Typed {
 		if (action.action == 'speed') {
 			this.speed = action.n; // overwrites speed value permanently
 		} else if (action.action == 'pause') {
-			this.config.onTypingPaused(0, this);
+			if (typeof this.config.onTypingPaused === 'function') {
+				this.config.onTypingPaused(0, this);
+			}
+
 			this.nextPause = action.n; // sets a wait time temporarily
 		}
 
@@ -117,14 +131,21 @@ export default class Typed {
 		if (this.actions[this.nodeCounter]) {
 			this.executeAction(this.actions[this.nodeCounter]);
 		}
+
 		const waitTime = this.nextPause ?? this.speed;
+
 		this.timeout = setTimeout(() => {
 			if (this.nextPause) {
 				this.nextPause = null;
-				this.config.onTypingResumed(0, this);
+
+				if (typeof this.config.onTypingResumed === 'function') {
+					this.config.onTypingResumed(0, this);
+				}
 			}
+
 			this.spans[this.nodeCounter].style = '';
 			this.nodeCounter += 1;
+
 			if (this.nodeCounter < this.spans.length) {
 				this.typewrite();
 			} else {
@@ -140,21 +161,26 @@ export default class Typed {
 		this.el.replaceChildren();
 		this.config.onDestroy(this);
 	}
-}
 
-function getLeafNodes (node) {
-	const leafNodes = [];
+	_getLeafNodes (node) {
+		const leafNodes = [];
 
-	function traverse (currentNode) {
-		if (currentNode.childNodes.length === 0) {
-			// It's a leaf node (no child nodes)
-			leafNodes.push(currentNode);
-		} else {
-			// Recursively process child nodes
-			currentNode.childNodes.forEach(child => traverse(child));
-		}
+		const traverse = currentNode => {
+			const children = currentNode.childNodes;
+
+			if (children.length === 0) {
+				// It's a leaf node (no child nodes)
+				leafNodes.push(currentNode);
+			} else {
+				// Recursively process child nodes
+				children.forEach(child => traverse(child));
+			}
+		};
+
+		traverse(node);
+
+		return leafNodes;
 	}
-
-	traverse(node);
-	return leafNodes;
 }
+
+export default Typed;

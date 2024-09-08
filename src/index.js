@@ -32,8 +32,7 @@ export * as Random from './lib/vendor/random-js.min.js';
 
 export * as Luxon from 'luxon';
 
-import Typed from './lib/vendor/typed.min.js';
-
+import Typed from './lib/MonoTyped';
 export { Typed };
 
 
@@ -64,7 +63,7 @@ import portuguese from './translations/Portugues';
 import russian from './translations/Russian';
 import spanish from './translations/Espanol';
 import tokipona from './translations/tokipona';
-import bulgarian from './translations/Bulgarian'
+import bulgarian from './translations/Bulgarian';
 
 Monogatari._translations = {
 	'Bahasa Indonesia': indonesian,
