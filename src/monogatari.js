@@ -2137,6 +2137,13 @@ class Monogatari {
 				return Promise.reject (e);
 			});
 		} else {
+			this.debug.debug({
+				'Block': this.global ('block'),
+				'Distraction Free': this.global ('distraction_free'),
+				'Engine Block': this.global ('_engine_block'),
+				'Executing Sub Action': this.global ('_executing_sub_action'),
+				'Modal Visible': $_('.modal').isVisible (),
+			});
 			return Promise.reject ('Extra condition check failed.');
 		}
 	}

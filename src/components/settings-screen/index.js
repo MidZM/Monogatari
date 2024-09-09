@@ -5,10 +5,20 @@ class SettingsScreen extends ScreenComponent {
 
 	static bind () {
 		// Fix for select labels
-		this.engine.on ('click', '[data-select]', () => {
-			const e = document.createEvent ('MouseEvents');
-			e.initMouseEvent ('mousedown');
-			this.engine.element ().find (`[data-action='${this.dataset.select}']`).first ().dispatchEvent (e);
+		const self = this;
+		this.engine.on ('click', '[data-select]', function () {
+			const selector = `[data-action='${this.dataset.select}']`;
+			const target = self.engine.element ().find (selector).get (0);
+
+			if (target) {
+				target.focus();
+				const event = new MouseEvent('mousedown', {
+					bubbles: true,
+					cancelable: true,
+					view: window
+				});
+				target.dispatchEvent(event);
+			}
 		});
 
 		return Promise.resolve ();
