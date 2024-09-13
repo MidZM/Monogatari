@@ -1,21 +1,32 @@
 import { Action } from './../lib/Action';
-import Typed from './../lib/MonoTyped';
+// import Typed from './../lib/MonoTyped';
 import { $_ } from '@aegis-framework/artemis/index';
 
 export class Dialog extends Action {
 
 	static shouldProceed () {
 		// Check if the type animation has finished and the Typed object still exists
-		if (!this.engine.global ('finished_typing') && this.engine.global ('textObject') !== null) {
+		const component = this.engine.element ().find ('mono-typist').collection[0];
+		if (!this.engine.global ('finished_typing') && component.state.strings.length) {
 
 			// Get the string it was typing
-			const str = this.engine.global ('textObject').strings [0];
+			const str = component.state.strings[0]; // TODO: Multi-String Capability?
 
 			// Get the element it was typing to
-			const element = this.engine.global ('textObject').el;
-			this.engine.global ('textObject').destroy ();
+			// NOTE: Since "querySelector" selects the first element, we don't have to worry about it selecting the wrong element
+			const element = component.querySelector('div');
+			component.destroy ();
 
-			element.innerHTML = str.replace (/\{pause:(\d+)\}/g, '').replace (/\{speed:(\d+)\}/g, '');
+			// We want to dynamically replace all actions, including custom ones.
+			let replaced = str;
+			const actions = this.engine.configuration(component.localName).actions
+			for (const action in actions) {
+				if (actions[action].type === 'number') {
+					replaced = replaced.replace(new RegExp(`\\{${action}:(\\d+)\\}`, 'g'), '');
+				}
+			}
+
+			element.innerHTML = replaced;
 
 			this.engine.global ('finished_typing', true);
 
@@ -68,6 +79,7 @@ export class Dialog extends Action {
 	}
 
 	static setup () {
+		// Since this is defined on the "mono-typist" component, it may no longer be necessary, but I'm keeping it just incase.
 		this.engine.globals ({
 			textObject: null,
 			typedConfiguration: {
@@ -239,7 +251,8 @@ export class Dialog extends Action {
 			if (animation && this.engine.setting ('TypeAnimation') === true) {
 				this.engine.global ('typedConfiguration').strings = [dialog];
 				this.engine.global ('finished_typing', false);
-				this.engine.global ('textObject', new Typed (element.content ('wrapper').get (0), this.engine.global ('typedConfiguration')));
+				// This needs to be properly tested to make sure it's working.
+				this.engine.element ().find (element.content ('wrapper').get (0)).collection[0].setState({ strings: [dialog] });
 			} else {
 				element.content ('wrapper').html (clearDialog);
 				this.engine.global ('finished_typing', true);
@@ -288,7 +301,8 @@ export class Dialog extends Action {
 
 			this.engine.global ('typedConfiguration').strings = [dialog];
 			this.engine.global ('finished_typing', false);
-			this.engine.global ('textObject', new Typed (last, this.engine.global ('typedConfiguration')));
+			// NVL mode needs to be tested properly.
+			this.engine.element ().find (last).collection[0].setState({ strings: [dialog] });
 
 		} else {
 			if (character !== '_narrator') {
@@ -346,7 +360,7 @@ export class Dialog extends Action {
 				// no animation will be shown in the game.
 				this.engine.global ('typedConfiguration').strings = [dialog];
 				this.engine.global ('finished_typing', false);
-				this.engine.global ('textObject', new Typed ('[data-ui="say"]', this.engine.global ('typedConfiguration')));
+				this.engine.element ().find ('[data-ui="say"]').collection[0].setState({ strings: [dialog] });
 			} else {
 				this.engine.element ().find ('[data-ui="say"]').html (clearDialog);
 				this.engine.global ('finished_typing', true);
