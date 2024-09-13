@@ -19,7 +19,7 @@ export class Dialog extends Action {
 
 			// We want to dynamically replace all actions, including custom ones.
 			let replaced = str;
-			const actions = this.engine.configuration(component.localName).actions
+			const actions = this.engine.configuration(component.localName).actions;
 			for (const action in actions) {
 				if (actions[action].type === 'number') {
 					replaced = replaced.replace(new RegExp(`\\{${action}:(\\d+)\\}`, 'g'), '');
