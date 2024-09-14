@@ -65,7 +65,7 @@ class MonoTypist extends Component {
 				}
 			});
 		} else {
-			return console.error('Attempted to add an action to typing actions, but an invalid action object was provided:\n' + action);
+			return this.engine.debug.error('Attempted to add an action to typing actions, but an invalid action object was provided:\n' + action);
 		}
 	}
 
@@ -146,6 +146,48 @@ class MonoTypist extends Component {
 	}
 
 	/**
+		@static
+		@function checkVoidTags — Check for non-enclosing html tags and return properties for.
+		@param {*} node The node to check
+		@returns {false|object} A boolean false if it's not a void tag, or an object containing properties for the void tag.
+	 */
+	checkVoidTags (element) {
+		// This has been hacked together... it may need to be improved
+		const replace = (text, index = 1) => text
+			.slice(text.indexOf('-') + index)
+			.replace(/[-](\w)/g, m => m[1].toUpperCase());
+
+		const voidElements = [ 'br', 'hr', 'img' ];
+		const voidAttributeNames = element.localName && element.getAttributeNames();
+		const voidAttributes = voidAttributeNames && voidAttributeNames.map(elm => ({
+			[elm]: elm.slice(0, 5) === 'data-' ?
+				element.dataset[replace(elm)] :
+				elm.slice(0, 5) === 'aria-' ?
+					element['aria' + replace(elm, 0)] :
+					element[elm === 'class' ? 'className' : elm]
+		})).reduce((a, v) => Object.assign(a, v), {});
+
+		const voidProperties = voidElements.map(e => ({
+			[e]: {
+				props: { [e]: true },
+				state: {
+					...(voidAttributes)
+				}
+			}
+		})).reduce((a, v) => Object.assign(a, v), {});
+
+		if (element.localName && voidProperties[element.localName.toLowerCase()]) {
+			const { props, state = undefined } = voidProperties[element.localName.toLowerCase()];
+			const node = document.createElement('no-letter');
+			node.style.visibility = 'hidden';
+
+			return { props, state, node };
+		}
+
+		return false;
+	}
+
+	/**
 		@function setDisplay — Setup the current string with the proper elements to run the typing animation.
 		@param {string} curString The current string.
 		@returns {void} 
@@ -155,20 +197,16 @@ class MonoTypist extends Component {
 		typingElement.innerHTML = curString;
 		const textNodes = this._getLeafNodes(typingElement);
 		this.actions = [];
+
 		for (const textNode of textNodes) {
-			if (textNode.localName === 'br' || textNode.localName === 'hr' || textNode.localName === 'img') {
-				const node = document.createElement('no-letter');
-				node.setProps({ [textNode.localName]: true });
+			const isVoidElement = this.checkVoidTags(textNode);
+			if (isVoidElement) {
+				const { props, state, node } = isVoidElement;
+				node.setProps(props);
 
-				if (textNode.localName === 'img') {
-					node.setState({[textNode.localName]: {
-						class: textNode.className,
-						src: textNode.src,
-						alt: textNode.alt
-					}});
+				if (state) {
+					node.setState(state);
 				}
-
-				node.style.visibility = 'hidden';
 
 				// overwrite original with a <no-letter> element.
 				textNode.replaceWith(node);
@@ -219,11 +257,28 @@ class MonoTypist extends Component {
 		//   eg: "{speed:10}hello {pause:1000}{speed:1000}world!"
 		//     -> [ '', '{speed:10}', 'hello ', '{pause:1000}', '', '{speed:1000}', 'world!' ]
 		// `(?:<pattern>)` is a non-capturing group, see https://devdocs.io/javascript/regular_expressions/non-capturing_group
-		const numExps = Object.entries(this.engine.configuration(MonoTypist.tag).actions)
-			.map(([ action, value ]) => value.type === 'number' && action)
-			.join('|');
+		const acts = Object.entries(this.engine.configuration(MonoTypist.tag).actions)
+			.map(([ action, value ]) => ({ [value.type]: [action] }))
+			.reduce((a, b) => {
+				for (const key in b) {
+					if (a[key]) {
+						a[key] = a[key].concat(b[key]);
+					} else {
+						a[key] = b[key];
+					}
+				}
+				return a;
+			}, {});
 
-		const actionPattern = new RegExp(`(\\{(?:${numExps}):\\d+\\})`, 'g');
+		const number = acts.number.join('|');
+		const enclosed = acts.enclosed ? acts.enclosed.join('|') : '';
+		const instance = acts.instances ? acts.instance.join('|') : '';
+
+		const numberPattern = `\\{(?:${number}):\\d+\\}`;
+		const enclosedPattern = `\\{(?:${enclosed})\\}[^]*?\\{\\/(?:${enclosed})\\}`;
+		const instancePattern = `\\{(?:${instance})\\/\\}`;
+
+		const actionPattern = new RegExp(`(${numberPattern}|${enclosedPattern}|${instancePattern})`, 'g');
 		const sections = curString.split(actionPattern);
 
 		const nodes = [];
@@ -252,13 +307,34 @@ class MonoTypist extends Component {
 		    // action section
 		    } else {
 				// extract action and parameter
-				const match = new RegExp(`\\{(?<action>${numExps}):(?<n>\\d+)\\}`).exec(section);
-				actions[nodeCounter] = {
-					action: match.groups.action,
-					n: match.groups.n
-				};
+				let match;
+				let type;
+				if (number) {
+					type = 'number';
+					match = section.match(new RegExp(`^\\{(?<action>${number}):(?<n>\\d+)\\}$`));
+				}
+				if (!match && enclosed) {
+					type = 'enclosed';
+					match = section.match(new RegExp(`^\\{(?<action>${enclosed})\\}(?<text>[^]*?)\\{\\/\\1\\}$`));
+				}
+				if (!match && instance) {
+					type = 'instance';
+					match = section.match(new RegExp(`^\\{(?<action>${instance})\\/\\}$`));
+				}
+
+				if (match) {
+					actions[nodeCounter] = {
+						action: match.groups.action,
+						...(match.groups.n && {n: match.groups.n}),
+						...(match.groups.text !== undefined && {text: match.groups.text}),
+						...(type === 'enclosed' && {index: nodeCounter - 1})
+					};
+				} else {
+					this.engine.debug.error('Failed to match action:', section);
+				}
 		    }
 		});
+
 		// Force length of 'actions' to equal nodeCounter
 		actions[nodeCounter-1] = actions[nodeCounter-1];
 		return [nodes, actions];
@@ -267,14 +343,17 @@ class MonoTypist extends Component {
 	/**
 		@function executeAction — Execute the provided action asynchronously, even if it's not asynchronous.
 		- TODO: Make asynchronous call stop the typing animation(?)
-		@param {object} action The action to be executed.
+		@param {object} act The action to be executed.
 		@returns {void}
 	**/
-	executeAction (action) {
+	executeAction (act) {
 		const { actions } = this.engine.configuration(MonoTypist.tag);
 		for (const key in actions) {
-			if (action.action === key) {
-				Util.callAsync(actions[key].func, this, this, action.n);
+			if (act.action === key) {
+				// Since we already know what action it is, we don't need to send that data to the callback function.
+				// So we use destructuring to exclude it from the action.
+				const { action, ...variables } = act;
+				Util.callAsync(actions[key].func, this, this, variables);
 			}
 		}
 	}
@@ -390,7 +469,7 @@ class MonoTypist extends Component {
 				this.engine.debug.error('Provided value was not a valid number value:\n' + number);
 			}
 		}});
-	
+
 		this.engine.component('mono-typist').addAction({action: 'speed', type: 'number', func: function (self, number) {
 			const percentage = Number(number);
 			if (percentage) {

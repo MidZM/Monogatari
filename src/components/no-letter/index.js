@@ -4,34 +4,25 @@ class NoLetter extends Component {
 	constructor (...args) {
 		super(...args);
 
-		this.state = {
-			img: {}
-		};
-
 		this.props = {
-			letter: false,
-			br: false,
-			hr: false,
-			img: false
+			letter: false
 		};
 	}
 
 	render () {
-		const { letter, br, hr, img } = this.props;
-		if (br || hr || img) {
-			let text;
-			if (br) {
-				text = 'br';
-			} else if (hr) {
-				text = 'hr';
-			} else if (img) {
-				const properties = Object.entries(this.state.img)
-					.map(([ key, value ]) => `${key}="${value}"`)
-					.join(' ');
+		const { letter } = this.props;
+		const props = Object.keys(this._props).map(e => (e !== 'letter' ? e : false));
 
-				text = `img ${properties}`;
+		if (props[1]) {
+			let text = props[1];
+
+			if (Object.values(this._state).length) {
+				text += ' ' + Object.entries(this._state)
+					.map(([ key, value ]) => value ? `${key}="${value}"` : '')
+					.join(' ');
 			}
-			return `<${text}>`;
+
+			return `<${text} />`;
 		}
 
 		return letter;
