@@ -2,7 +2,7 @@ import { Component } from '../../lib/Component';
 
 class NoLetter extends Component {
 	constructor (...args) {
-		super(...args);
+		super (...args);
 
 		this.props = {
 			letter: false
@@ -11,15 +11,15 @@ class NoLetter extends Component {
 
 	render () {
 		const { letter } = this.props;
-		const props = Object.keys(this._props).map(e => (e !== 'letter' ? e : false));
+		const props = Object.keys (this._props).map (e => (e !== 'letter' ? e : false));
 
 		if (props[1]) {
 			let text = props[1];
 
-			if (Object.values(this._state).length) {
-				text += ' ' + Object.entries(this._state)
-					.map(([ key, value ]) => value ? `${key}="${value}"` : '')
-					.join(' ');
+			if (Object.values (this._state).length) {
+				text += ' ' + Object.entries (this._state)
+					.map (([ key, value ]) => value && key === text ? `${key}="${value}"` : '')
+					.join (' ');
 			}
 
 			return `<${text} />`;

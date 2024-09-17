@@ -8,25 +8,41 @@ export class Dialog extends Action {
 		// Check if the type animation has finished and the Typed object still exists
 		const component = this.engine.element ().find ('mono-typist').collection[0];
 		if (!this.engine.global ('finished_typing') && component.state.strings.length) {
+			const speedReader = !this.engine.setting ('InstantText');
+			if (speedReader) {
+				component.speed = 0;
+				component.ignorePause = true;
 
-			// Get the string it was typing
-			const str = component.state.strings[0]; // TODO: Multi-String Capability?
+				if (component.loops) {
+					component.loops = false;
 
-			// Get the element it was typing to
-			// NOTE: Since "querySelector" selects the first element, we don't have to worry about it selecting the wrong element
-			const element = component.querySelector('div');
-			component.destroy ();
-
-			// We want to dynamically replace all actions, including custom ones.
-			let replaced = str;
-			const actions = this.engine.configuration(component.localName).actions;
-			for (const action in actions) {
-				if (actions[action].type === 'number') {
-					replaced = replaced.replace(new RegExp(`\\{${action}:(\\d+)\\}`, 'g'), '');
+					// If this doesn't get set, it'll just start looping again.
+					component.stopLoop = true;
 				}
-			}
+			} else {
+				// Get the string it was typing
+				const str = component.state.strings[0]; // TODO: Multi-String Capability?
 
-			element.innerHTML = replaced;
+				// Get the element it was typing to
+				// NOTE: Since "querySelector" selects the first element, we don't have to worry about it selecting the wrong element
+				const element = component.querySelector ('div');
+				component.destroy ();
+
+				// We want to dynamically replace all actions, including custom ones.
+				let replaced = str;
+				const actions = this.engine.configuration (component.localName).actions;
+				for (const action in actions) {
+					if (actions[action].type === 'number') {
+						replaced = replaced.replace (new RegExp(`\\{${action}:(\\d+)\\}`, 'g'), '');
+					} else if (actions[action].type === 'enclosed') {
+						replaced = replaced.replace (new RegExp(`\\{\\/${action}.*?\\}`, 'g'), '');
+					} else if (actions[action].type === 'instance') {
+						replaced = replaced.replace (new RegExp(`\\{${action}\\}`, 'g'), '');
+					}
+				}
+
+				element.innerHTML = replaced;
+			}
 
 			this.engine.global ('finished_typing', true);
 
@@ -79,14 +95,15 @@ export class Dialog extends Action {
 	}
 
 	static setup () {
-		// Since this is defined on the "mono-typist" component, it may no longer be necessary, but I'm keeping it just incase.
 		this.engine.globals ({
 			textObject: null,
+			finished_typing: false,
 			typedConfiguration: {
 				strings: [],
 				typeSpeed: this.engine.preference ('TextSpeed'),
-				loop: false, // TODO: We need to implement this
-				showCursor: false, // TODO: We need to implement this
+				loop: 0, // Set to true for infinite looping.
+				showCursor: false,
+				hideCursorOnEnd: false, // If the cursor is being shown, hide it once the text ends.
 				preStringTyped: () => {
 					this.engine.global ('finished_typing', false);
 					this.engine.trigger ('didStartTyping');

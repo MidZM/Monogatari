@@ -50,4 +50,5 @@
 @import './components/text-input/index.scss';
 @import './components/timer-display/index.scss';
 @import './components/visual-novel/index.scss';
+@import './components/mono-typist/index.scss';
 @import './components/no-letter/index.scss';
