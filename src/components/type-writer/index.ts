@@ -994,7 +994,14 @@ class TypeWriter extends Component<TypeWriterProps, TypeWriterState> {
 		const options: Record<string, string> | string[] = {};
 		let opts: string | string[] = optionsStr.trim();
 
-		if (QUOTED_VALUE_PATTERN.test(opts)) {
+		// Reset the lastIndex of the regex patterns to ensure correct matching.
+		QUOTED_VALUE_PATTERN.lastIndex = 0;
+		CSS_VALUE_PATTERN.lastIndex = 0;
+
+		const isQuoted = QUOTED_VALUE_PATTERN.test(opts);
+		const isCss = CSS_VALUE_PATTERN.test(opts);
+
+		if (isQuoted) {
 			opts = opts
 				.replace(QUOTE_CONTENT_PATTERN, (_match, _quote, content: string) => {
 					return content.replace(/\s/g, '[~]');
@@ -1002,7 +1009,7 @@ class TypeWriter extends Component<TypeWriterProps, TypeWriterState> {
 				.replace(/\s/g, '=')
 				.replace(/\[~\]/g, ' ')
 				.split(/=/g);
-		} else if (CSS_VALUE_PATTERN.test(opts)) {
+		} else if (isCss) {
 			opts = opts
 				.replace(CSS_VALUE_PATTERN, (_match, _quote, content: string) => {
 					return ' ' + content.replace(/\s/g, '[~]');
